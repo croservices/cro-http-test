@@ -7,7 +7,7 @@ sub routes() is export {
             content 'text/plain', 'Nothing to see here';
         }
         post -> 'add' {
-            request-body 'application-json' => -> (:$x!, :$y!) {
+            request-body 'application/json' => -> (:$x!, :$y!) {
                 content 'application/json', { :result($x + $y) };
             }
         }
@@ -20,7 +20,7 @@ test-service routes(), {
     test get('/'),
         status => 200,
         content-type => 'text/plain',
-        body => /nothing/;
+        body => /:i nothing/;
 
     test-given '/add', {
         test post(json => { :x(37), :y(5) }),

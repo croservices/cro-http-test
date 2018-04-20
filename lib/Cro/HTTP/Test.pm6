@@ -1,5 +1,6 @@
 unit module Cro::HTTP::Test;
 use Cro::HTTP::Client;
+use Cro::HTTP::Test::ChannelServer;
 use Cro::MediaType;
 use Cro::Transform;
 use Cro::Uri;
@@ -23,9 +24,12 @@ my class TestContext {
     }
 }
 
-multi test-service(Cro::Transform $service, &tests, :$fake-auth, :$http,
+multi test-service(Cro::Transform $testee, &tests, :$fake-auth, :$http,
                    *%client-options --> Nil) is export {
-    ...
+    my ($client, $service) = build-client-and-service($testee, %client-options, :$fake-auth, :$http);
+    $service.start;
+    LEAVE $service.stop;
+    test-service-run $client, &tests;
 }
 
 multi test-service(Str $uri, &tests, *%client-options --> Nil) is export {

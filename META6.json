@@ -8,7 +8,8 @@
     "license"       : "Artistic-2.0",
     "depends"       : [ "Cro::HTTP" ],
     "provides"      : {
-        "Cro::HTTP::Test": "lib/Cro/HTTP/Test.pm6"
+        "Cro::HTTP::Test": "lib/Cro/HTTP/Test.pm6",
+        "Cro::HTTP::Test::ChannelServer": "lib/Cro/HTTP/Test/ChannelServer.pm6"
     },
     "resources": [],
     "source-url"    : "https://github.com/croservices/cro-http-test.git"
