@@ -14,7 +14,13 @@ my class X::Cro::HTTP::Test::OnlyOneBody is Exception {
 my class TestContext {
     has Cro::HTTP::Client $.client is required;
     has Str $.base-path = '';
-    has %.request-options;
+    has %.client-options;
+
+    method derive($add-base, %add-options) {
+        my $new-base = merge-path($!base-path, $add-base);
+        my %new-options := merge-options(%!client-options, %add-options);
+        return TestContext.new(:$!client, :base-path($new-base), :client-options(%new-options));
+    }
 }
 
 multi test-service(Cro::Transform $service, &tests, :$fake-auth, :$http,
@@ -32,11 +38,19 @@ sub test-service-run($client, &tests --> Nil) {
 }
 
 multi test-given(Str $new-base, &tests, *%client-options --> Nil) is export {
-    ...
+    my TestContext $orig-context = $*CRO-HTTP-TEST-CONTEXT;
+    {
+        my $*CRO-HTTP-TEST-CONTEXT = $orig-context.derive($new-base, %client-options);
+        tests();
+    }
 }
 
 multi test-given(&tests, *%client-options --> Nil) is export {
-    ...
+    my TestContext $orig-context = $*CRO-HTTP-TEST-CONTEXT;
+    {
+        my $*CRO-HTTP-TEST-CONTEXT = $orig-context.derive(Nil, %client-options);
+        tests();
+    }
 }
 
 class TestRequest {
@@ -97,8 +111,11 @@ multi head(*%client-options --> TestRequest) is export {
 sub test(TestRequest:D $request, :$status, :$content-type, :header(:$headers),
          :$body-text, :$body-blob, :$body, :$json --> Nil) is export {
     with $*CRO-HTTP-TEST-CONTEXT -> $ctx {
-        subtest {
-            my $resp = get-response($ctx, $request);
+        my $method = $request.method;
+        my $path = merge-path($ctx.base-path, $request.path);
+        subtest "$method $path" => {
+            my %options := merge-options($ctx.client-options, $request.client-options);
+            my $resp = get-response($ctx.client, $method, $path, %options);
             with $status {
                 when Int {
                     is $resp.status, $status, 'Status is acceptable';
@@ -131,8 +148,20 @@ sub test(TestRequest:D $request, :$status, :$content-type, :header(:$headers),
     }
 }
 
-sub get-response($ctx, $request) {
-    return await $ctx.client.request($request.method, $request.path, |$request.client-options);
+sub merge-path($base, $rel) {
+    return $base unless $rel;
+    return $rel unless $base;
+    return Cro::Uri.parse-ref($base).add($rel).Str;
+}
+
+sub merge-options(%base, %new) {
+    return %base unless %new;
+    return %new unless %base;
+    die "Merging options NYI";
+}
+
+sub get-response($client, $method, $path, %options) {
+    return await $client.request($method, $path, %options);
     CATCH {
         when X::Cro::HTTP::Error {
             return .response;
