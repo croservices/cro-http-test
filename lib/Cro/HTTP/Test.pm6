@@ -142,8 +142,20 @@ sub test(TestRequest:D $request, :$status, :$content-type, :header(:$headers),
                     ok $resp.content-type ~~ $content-type, 'Content type is acceptable';
                 }
             }
-            with $body {
-                if $body-text.defined || $body-blob.defined || $json.defined {
+            with $json {
+                if $body.defined || $body-text.defined || $body-blob.defined {
+                    die X::Cro::HTTP::Test::OnlyOneBody;
+                }
+                without $content-type {
+                    given $resp.content-type {
+                        ok .type eq 'application' && .subtype-name eq 'json' || .suffix eq 'json',
+                            'Content type is recognized as a JSON one';
+                    }
+                }
+                is-deeply await($resp.body), $json, 'Body is acceptable';
+            }
+            orwith $body {
+                if $body-text.defined || $body-blob.defined {
                     die X::Cro::HTTP::Test::OnlyOneBody;
                 }
                 ok await($resp.body) ~~ $body, 'Body is acceptable';
