@@ -10,7 +10,7 @@ sub routes() is export {
             content 'text/plain', 'Nothing to see here';
         }
         post -> 'add' {
-            request-body 'application-json' => -> (:$x!, :$y!) {
+            request-body 'application/json' => -> (:$x!, :$y!) {
                 content 'application/json', { :result($x + $y) };
             }
         }
