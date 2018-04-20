@@ -57,6 +57,13 @@ class TestRequest {
     has Str $.method is required;
     has Str $.path = '';
     has %.client-options;
+    submethod TWEAK() {
+        with %!client-options<json> -> $json {
+            %!client-options<content-type> ||= 'application/json';
+            %!client-options<body> = $json;
+            %!client-options<json>:delete;
+        }
+    }
 }
 
 multi request(Str $method, Str $path, *%client-options --> TestRequest) is export {
