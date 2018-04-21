@@ -3,6 +3,10 @@ use Cro::Connector;
 use Cro::HTTP::Client;
 use Cro::HTTP::RequestParser;
 use Cro::HTTP::ResponseSerializer;
+use Cro::HTTP2::FrameParser;
+use Cro::HTTP2::FrameSerializer;
+use Cro::HTTP2::RequestParser;
+use Cro::HTTP2::ResponseSerializer;
 use Cro::TCP;
 
 class Cro::HTTP::Test::Client is Cro::HTTP::Client {
@@ -91,16 +95,25 @@ sub build-client-and-service(Cro::Transform $testee, %client-options, :$fake-aut
     die "fake-auth NYI" if $fake-auth !=== Any;
     my $connection-channel = Channel.new;
     my $connector = Cro::HTTP::Test::Connector.new(:$connection-channel);
-    my $client = Cro::HTTP::Test::Client.new(:$connector, |%client-options, base-uri => 'http://test/');
-    my $service = do if !$http.defined || $http eq '1' || $http eq '1.1' {
+    my $client = Cro::HTTP::Test::Client.new(:$connector, :$http, |%client-options, base-uri => 'http://test/');
+    my $service = do if !$http.defined || $http eq '1.1' {
         Cro.compose:
             Cro::HTTP::Test::Listener.new(:$connection-channel),
             Cro::HTTP::RequestParser.new,
             $testee,
             Cro::HTTP::ResponseSerializer.new
     }
+    elsif $http eq '2' {
+        Cro.compose:
+            Cro::HTTP::Test::Listener.new(:$connection-channel),
+            Cro::HTTP2::FrameParser.new,
+            Cro::HTTP2::RequestParser.new,
+            $testee,
+            Cro::HTTP2::ResponseSerializer.new,
+            Cro::HTTP2::FrameSerializer.new
+    }
     else {
-        die "Unsupported HTTP version '$http'";
+        die "Must pick either HTTP/1.1 or HTTP/2 for running tests (got $http.perl())";
     }
     return ($client, $service);
 }
