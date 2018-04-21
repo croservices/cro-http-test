@@ -28,7 +28,8 @@ multi test-service(Cro::Transform $testee, &tests, :$fake-auth, :$http,
                    *%client-options --> Nil) is export {
     my ($client, $service) = build-client-and-service($testee, %client-options, :$fake-auth, :$http);
     $service.start;
-    LEAVE $service.stop;
+    my $started = True;
+    LEAVE $service.stop if $started;
     test-service-run $client, &tests;
 }
 
