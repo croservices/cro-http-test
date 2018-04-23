@@ -9,10 +9,15 @@ sub routes() is export {
         get -> 'binary' {
             content 'application/octet-stream', Blob.new(1,2,4,9);
         }
+        get -> 'headers' {
+            header 'X-foo', '123';
+            header 'X-BAR', 'mat';
+            content 'text/plain', 'unimportant';
+        }
     }
 }
 
-plan 6;
+plan 20;
 
 test-service routes(), {
     test get('/text'),
@@ -40,4 +45,36 @@ test-service routes(), {
         status => 200,
         content-type => 'application/octet-stream',
         body-blob => *.elems == 4;
+
+    test get('/headers'),
+        header => (X-foo => '123');
+    test get('/headers'),
+        header => (X-foo => 123);
+    test get('/headers'),
+        headers => (X-foo => '123');
+    test get('/headers'),
+        headers => (X-foo => 123);
+
+    test get('/headers'),
+        header => { X-foo => '123' };
+    test get('/headers'),
+        headers => { X-foo => '123' };
+    test get('/headers'),
+        headers => { X-foo => '123', X-bar => 'mat' };
+
+    test get('/headers'),
+        header => [ X-foo => '123' ];
+    test get('/headers'),
+        headers => [ X-foo => '123' ];
+    test get('/headers'),
+        headers => [ X-foo => '123', X-bar => 'mat' ];
+
+    test get('/headers'),
+        header => (X-bar => /t/);
+    test get('/headers'),
+        headers => (X-bar => /t/);
+    test get('/headers'),
+        headers => { X-foo => * > 100, X-bar => /t/ };
+    test get('/headers'),
+        headers => [ X-bar => /m/ ];
 }

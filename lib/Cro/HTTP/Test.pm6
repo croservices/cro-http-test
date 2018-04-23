@@ -11,6 +11,12 @@ my class X::Cro::HTTP::Test::OnlyOneBody is Exception {
         "Can only use one of `body`, `body-blob`, `body-text`, or `json`"
     }
 }
+my class X::Cro::HTTP::Test::BadHeaderTest is Exception {
+    has $.got;
+    method message() {
+        "Header tests should be a Pair or an Iterable of Pair, but got '$!got.perl()'"
+    }
+}
 
 my class TestContext {
     has Cro::HTTP::Client $.client is required;
@@ -145,6 +151,25 @@ sub test(TestRequest:D $request, :$status, :$content-type, :header(:$headers),
                 }
                 default {
                     ok $resp.content-type ~~ $content-type, 'Content type is acceptable';
+                }
+            }
+            with $headers {
+                for .list {
+                    when Pair {
+                        my $header-name = .key;
+                        my $got-value = $resp.header($header-name);
+                        given .value {
+                            when Str {
+                                is $got-value, $_, "$header-name header";
+                            }
+                            default {
+                                ok $got-value ~~ $_, "$header-name header";
+                            }
+                        }
+                    }
+                    default {
+                        die X::Cro::HTTP::Test::BadHeaderTest.new(got => $_);
+                    }
                 }
             }
             with $json {
