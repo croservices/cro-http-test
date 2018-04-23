@@ -165,6 +165,15 @@ sub test(TestRequest:D $request, :$status, :$content-type, :header(:$headers),
                 }
                 ok await($resp.body) ~~ $body, 'Body is acceptable';
             }
+            orwith $body-text {
+                if $body-blob.defined {
+                    die X::Cro::HTTP::Test::OnlyOneBody;
+                }
+                ok await($resp.body-text) ~~ $body-text, 'Body is acceptable';
+            }
+            orwith $body-blob {
+                ok await($resp.body-blob) ~~ $body-blob, 'Body is acceptable';
+            }
         };
     }
     else {
