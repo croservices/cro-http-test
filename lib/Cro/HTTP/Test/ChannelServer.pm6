@@ -91,8 +91,42 @@ class Cro::HTTP::Test::Connector does Cro::Connector {
     }
 }
 
-sub build-client-and-service(Cro::Transform $testee, %client-options, :$fake-auth, :$http) is export {
-    die "fake-auth NYI" if $fake-auth !=== Any;
+class Cro::HTTP::Test::FakeAuthHolder {
+    has @!auths;
+
+    method push-auth($auth --> Nil) {
+        push @!auths, $auth;
+    }
+
+    method pop-auth(--> Nil) {
+        pop @!auths;
+    }
+
+    method auth() {
+        @!auths ?? @!auths[*-1] !! Nil
+    }
+}
+
+my class FakeAuthInsertion does Cro::Transform {
+    has Cro::HTTP::Test::FakeAuthHolder $.auth-holder is required;
+    method consumes() { Cro::HTTP::Request }
+    method produces() { Cro::HTTP::Request }
+    method transformer(Supply $in --> Supply) {
+        supply whenever $in -> $req {
+            with $!auth-holder.auth {
+                $req.auth = $_;
+            }
+            emit $req;
+        }
+    }
+}
+
+sub build-client-and-service(Cro::Transform $testee, %client-options, :$fake-auth-holder,
+                             :$http) is export {
+    my @fake-auth;
+    with $fake-auth-holder {
+        push @fake-auth, FakeAuthInsertion.new(auth-holder => $_);
+    }
     my $connection-channel = Channel.new;
     my $connector = Cro::HTTP::Test::Connector.new(:$connection-channel);
     my $client = Cro::HTTP::Test::Client.new(:$connector, :$http, |%client-options, base-uri => 'http://test/');
@@ -100,6 +134,7 @@ sub build-client-and-service(Cro::Transform $testee, %client-options, :$fake-aut
         Cro.compose:
             Cro::HTTP::Test::Listener.new(:$connection-channel),
             Cro::HTTP::RequestParser.new,
+            |@fake-auth,
             $testee,
             Cro::HTTP::ResponseSerializer.new
     }

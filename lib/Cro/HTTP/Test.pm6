@@ -17,6 +17,11 @@ my class X::Cro::HTTP::Test::BadHeaderTest is Exception {
         "Header tests should be a Pair or an Iterable of Pair, but got '$!got.perl()'"
     }
 }
+my class X::Cro::HTTP::Test::BadFakeAuth is Exception {
+    method message() {
+        "Can only use `fake-auth` when testing a Cro transform, not a URI"
+    }
+}
 
 my class TestContext {
     has Cro::HTTP::Client $.client is required;
@@ -32,14 +37,22 @@ my class TestContext {
 
 multi test-service(Cro::Transform $testee, &tests, :$fake-auth, :$http,
                    *%client-options --> Nil) is export {
-    my ($client, $service) = build-client-and-service($testee, %client-options, :$fake-auth, :$http);
+    my $*CRO-HTTP-TEST-AUTH-HOLDER = Cro::HTTP::Test::FakeAuthHolder.new;
+    with $fake-auth {
+        $*CRO-HTTP-TEST-AUTH-HOLDER.push-auth($_);
+    }
+    my ($client, $service) = build-client-and-service($testee, %client-options,
+        :fake-auth-holder($*CRO-HTTP-TEST-AUTH-HOLDER), :$http);
     $service.start;
     my $started = True;
     LEAVE $service.stop if $started;
     test-service-run $client, &tests;
 }
 
-multi test-service(Str $uri, &tests, *%client-options --> Nil) is export {
+multi test-service(Str $uri, &tests, :$fake-auth, *%client-options --> Nil) is export {
+    with $fake-auth {
+        die X::Cro::HTTP::Test::BadFakeAuth.new;
+    }
     test-service-run Cro::HTTP::Client.new(base-uri => $uri, |%client-options), &tests;
 }
 
@@ -48,18 +61,31 @@ sub test-service-run($client, &tests --> Nil) {
     tests();
 }
 
-multi test-given(Str $new-base, &tests, *%client-options --> Nil) is export {
+multi test-given(Str $new-base, &tests, :$fake-auth, *%client-options --> Nil) is export {
     my TestContext $orig-context = $*CRO-HTTP-TEST-CONTEXT;
     {
         my $*CRO-HTTP-TEST-CONTEXT = $orig-context.derive($new-base, %client-options);
-        tests();
+        run-test-given(&tests, :$fake-auth);
     }
 }
 
-multi test-given(&tests, *%client-options --> Nil) is export {
+multi test-given(&tests, :$fake-auth, *%client-options --> Nil) is export {
     my TestContext $orig-context = $*CRO-HTTP-TEST-CONTEXT;
     {
         my $*CRO-HTTP-TEST-CONTEXT = $orig-context.derive(Nil, %client-options);
+        run-test-given(&tests, :$fake-auth);
+    }
+}
+
+sub run-test-given(&tests, :$fake-auth --> Nil) {
+    with $fake-auth {
+        with $*CRO-HTTP-TEST-AUTH-HOLDER -> $holder {
+            $holder.push-auth($fake-auth);
+            tests();
+            LEAVE $holder.pop-auth();
+        }
+    }
+    else {
         tests();
     }
 }
