@@ -248,6 +248,11 @@ sub merge-options(%base, %new) {
             append @result, @(%new<cookies> // ());
             %result<cookies> = @result;
         }
+        when 'headers' {
+            my @result = @(%base<headers> // ());
+            append @result, @(%new<headers> // ());
+            %result<headers> = @result;
+        }
         default {
             die "Merging option $_ NYI";
         }

@@ -6,12 +6,18 @@ sub routes() is export {
         get -> 'cookies', :%cookies is cookie {
             content 'text/plain', %cookies.sort(*.key).map({ "{.key}={.value}" }).join(",");
         }
+        get -> 'headers', :@headers is header {
+            content 'text/plain', @headers.grep(*.name.starts-with('X-'))
+                .sort({ .name, .value }).map({ "{.name}={.value}" }).join(",");
+        }
     }
 }
 
-plan 6;
+plan 12;
 
 test-service routes(), {
+    # Cookies
+
     test get('/cookies', cookies => { aa => 'foo' }),
         status => 200,
         content-type => 'text/plain',
@@ -43,6 +49,42 @@ test-service routes(), {
                 status => 200,
                 content-type => 'text/plain',
                 body => 'bb=bar,cc=win';
+        }
+    }
+
+    # Headers
+
+    test get('/headers', headers => [ X-aa => 'foo' ]),
+        status => 200,
+        content-type => 'text/plain',
+        body => 'X-aa=foo';
+
+    test-given headers => { X-bb => 'bar' }, {
+        test get('/headers'),
+            status => 200,
+            content-type => 'text/plain',
+            body => 'X-bb=bar';
+
+        test get('/headers', headers => { X-aa => 'foo' }),
+            status => 200,
+            content-type => 'text/plain',
+            body => 'X-aa=foo,X-bb=bar';
+
+        test-given headers => [ X-cc => 'baz' ], {
+            test get('/headers'),
+                status => 200,
+                content-type => 'text/plain',
+                body => 'X-bb=bar,X-cc=baz';
+
+            test get('/headers', headers => { X-aa => 'foo' }),
+                status => 200,
+                content-type => 'text/plain',
+                body => 'X-aa=foo,X-bb=bar,X-cc=baz';
+
+            test get('/headers', headers => { X-cc => 'win' }),
+                status => 200,
+                content-type => 'text/plain',
+                body => 'X-bb=bar,X-cc=baz,X-cc=win';
         }
     }
 }
