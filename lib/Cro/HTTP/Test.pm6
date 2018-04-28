@@ -241,7 +241,18 @@ sub merge-path($base, $rel) {
 sub merge-options(%base, %new) {
     return %base unless %new;
     return %new unless %base;
-    die "Merging options NYI";
+    my %result = %base;
+    for %new.kv -> $_, $value {
+        when 'cookies' {
+            my @result = @(%base<cookies> // ());
+            append @result, @(%new<cookies> // ());
+            %result<cookies> = @result;
+        }
+        default {
+            die "Merging option $_ NYI";
+        }
+    }
+    return %result;
 }
 
 sub get-response($client, $method, $path, %options) {
