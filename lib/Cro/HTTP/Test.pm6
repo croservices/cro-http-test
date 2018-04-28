@@ -124,10 +124,11 @@ multi post(*%client-options --> TestRequest) is export {
     request('POST', |%client-options)
 }
 
-multi put(Str $path, *%client-options --> TestRequest) is export {
+proto put(|) is export { * }
+multi put(Str $path, *%client-options --> TestRequest) {
     request('PUT', $path, |%client-options)
 }
-multi put(*%client-options --> TestRequest) is export {
+multi put(*%client-options --> TestRequest) {
     request('PUT', |%client-options)
 }
 
@@ -254,7 +255,7 @@ sub merge-options(%base, %new) {
             %result<headers> = @result;
         }
         default {
-            die "Merging option $_ NYI";
+            %result{$_} = $value;
         }
     }
     return %result;

@@ -10,10 +10,13 @@ sub routes() is export {
             content 'text/plain', @headers.grep(*.name.starts-with('X-'))
                 .sort({ .name, .value }).map({ "{.name}={.value}" }).join(",");
         }
+        put -> 'content' {
+            content 'text/plain', ~request.content-type;
+        }
     }
 }
 
-plan 12;
+plan 14;
 
 test-service routes(), {
     # Cookies
@@ -86,5 +89,19 @@ test-service routes(), {
                 content-type => 'text/plain',
                 body => 'X-bb=bar,X-cc=baz,X-cc=win';
         }
+    }
+
+    # Content-type and others, which simply get "latest wins" semantics.
+
+    test-given content-type => 'application/json', {
+        test put('/content', body-text => '[]'),
+            status => 200,
+            content-type => 'text/plain',
+            body => 'application/json';
+
+        test put('/content', content-type => 'text/plain', body-text => 'foo'),
+            status => 200,
+            content-type => 'text/plain',
+            body => 'text/plain';
     }
 }
