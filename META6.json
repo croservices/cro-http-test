@@ -1,7 +1,7 @@
 {
     "perl"          : "6.*",
     "name"          : "Cro::HTTP::Test",
-    "version"       : "0.7.3",
+    "version"       : "0.7.5",
     "description"   : "Write tests for HTTP services (whether or not they are built with Cro).",
     "tags"          : [ "HTTP", "Test", "Testing", "Web" ],
     "authors"       : [ "Jonathan Worthington <jnthn@jnthn.net>" ],
