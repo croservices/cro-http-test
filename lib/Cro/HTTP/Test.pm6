@@ -209,7 +209,12 @@ sub test(TestRequest:D $request, :$status, :$content-type, :header(:$headers),
                             'Content type is recognized as a JSON one';
                     }
                 }
-                is-deeply await($resp.body), $json, 'Body is acceptable';
+                if $json ~~ Code {
+                    ok await($resp.body) ~~ $json, 'Body is acceptable';
+                }
+                else {
+                    is-deeply await($resp.body), $json, 'Body is acceptable';
+                }
             }
             orwith $body {
                 if $body-text.defined || $body-blob.defined {

@@ -21,7 +21,7 @@ my $server = Cro::HTTP::Server.new: :host<127.0.0.1>, :port(TEST_PORT), :applica
 $server.start;
 END $server.stop;
 
-plan 4;
+plan 5;
 
 test-service "http://127.0.0.1:{TEST_PORT}/", {
     test get('/'),
@@ -33,6 +33,10 @@ test-service "http://127.0.0.1:{TEST_PORT}/", {
         test post(json => { :x(37), :y(5) }),
             status => 200,
             json => { :result(42) };
+
+        test post(json => { :x(37), :y(5) }),
+            status => 200,
+            json => { .<result> == 42 };
 
         test post(json => { :x(37) }),
             status => 400;
