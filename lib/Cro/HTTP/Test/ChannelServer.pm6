@@ -34,13 +34,23 @@ class Cro::HTTP::Test::Connection does Cro::Connection does Cro::Replyable {
     has Channel $.in .= new;
     has Channel $.out .= new;
     has $.replier = Cro::HTTP::Test::Replier.new(:$!out);
+    has Str $.peer-host;
+    has Int $.peer-port;
 
     method produces() { Cro::TCP::Message }
 
     method incoming() {
         supply whenever $!in.Supply -> $data {
-            emit Cro::TCP::Message.new(:$data);
+            emit Cro::TCP::Message.new(:$data, :connection(self));
         }
+    }
+
+    method peer-host() {
+        $!peer-host // '127.0.0.1'
+    }
+
+    method peer-port() {
+        $!peer-port // 1234
     }
 }
 
@@ -56,6 +66,8 @@ class Cro::HTTP::Test::Listener does Cro::Source {
 
 class Cro::HTTP::Test::Connector does Cro::Connector {
     has Channel $.connection-channel is required;
+    has Str $.peer-host;
+    has Int $.peer-port;
 
     class Transform does Cro::Transform {
         has Channel $.out is required;
@@ -84,7 +96,7 @@ class Cro::HTTP::Test::Connector does Cro::Connector {
         start {
             my $in = Channel.new;
             my $out = Channel.new;
-            my $connection = Cro::HTTP::Test::Connection.new(:$in, :$out);
+            my $connection = Cro::HTTP::Test::Connection.new(:$in, :$out, :$!peer-host, :$!peer-port);
             $!connection-channel.send($connection);
             Transform.new(out => $in, in => $out)
         }
@@ -122,13 +134,13 @@ my class FakeAuthInsertion does Cro::Transform {
 }
 
 sub build-client-and-service(Cro::Transform $testee, %client-options, :$fake-auth-holder,
-                             :$http) is export {
+                             :$http, Str :$peer-host, Int :$peer-port) is export {
     my @fake-auth;
     with $fake-auth-holder {
         push @fake-auth, FakeAuthInsertion.new(auth-holder => $_);
     }
     my $connection-channel = Channel.new;
-    my $connector = Cro::HTTP::Test::Connector.new(:$connection-channel);
+    my $connector = Cro::HTTP::Test::Connector.new(:$connection-channel, :$peer-host, :$peer-port);
     my $client = Cro::HTTP::Test::Client.new(:$connector, :$http, |%client-options, base-uri => 'http://test/');
     my $service = do if !$http.defined || $http eq '1.1' {
         Cro.compose:

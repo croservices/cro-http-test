@@ -36,13 +36,13 @@ my class TestContext {
 }
 
 multi test-service(Cro::Transform $testee, &tests, :$fake-auth, :$http,
-                   *%client-options --> Nil) is export {
+                   Str :$peer-host, Int :$peer-port, *%client-options --> Nil) is export {
     my $*CRO-HTTP-TEST-AUTH-HOLDER = Cro::HTTP::Test::FakeAuthHolder.new;
     with $fake-auth {
         $*CRO-HTTP-TEST-AUTH-HOLDER.push-auth($_);
     }
     my ($client, $service) = build-client-and-service($testee, %client-options,
-        :fake-auth-holder($*CRO-HTTP-TEST-AUTH-HOLDER), :$http);
+        :fake-auth-holder($*CRO-HTTP-TEST-AUTH-HOLDER), :$http, :$peer-host, :$peer-port);
     $service.start;
     my $started = True;
     LEAVE $service.stop if $started;
