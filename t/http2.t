@@ -27,10 +27,8 @@ test-service routes(), :http<2>, {
             status => 200,
             json => { :result(42) };
 
-        test post(json => { :x(37) }),
-            status => 400;
+        test-is-bad-request post(json => { :x(37) });
 
-        test get(json => { :x(37) }),
-            status => 405;
+        test-is-method-not-allowed get(json => { :x(37) });
     }
 }

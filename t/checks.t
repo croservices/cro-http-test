@@ -41,8 +41,7 @@ test-service routes(), {
         status => 200,
         content-type => 'application/octet-stream',
         body-blob => * eq Blob.new(1,2,4,9);
-    test get('/binary'),
-        status => 200,
+    test-is-ok get('/binary'),
         content-type => 'application/octet-stream',
         body-blob => *.elems == 4;
 
