@@ -289,31 +289,31 @@ sub test-media-type(Cro::MediaType $got, Cro::MediaType $expected) {
     }
 }
 
-sub test-is-ok(|c) is hidden-from-backtrace is export {
+sub is-ok(|c) is hidden-from-backtrace is export {
     test |c, status => 200
 }
-sub test-is-no-content(|c) is hidden-from-backtrace is export {
+sub is-no-content(|c) is hidden-from-backtrace is export {
     test |c, status => 204
 }
-sub test-is-bad-request(|c) is hidden-from-backtrace is export {
+sub is-bad-request(|c) is hidden-from-backtrace is export {
     test |c, status => 400
 }
-sub test-is-unauthorized(|c) is hidden-from-backtrace is export {
+sub is-unauthorized(|c) is hidden-from-backtrace is export {
     test |c, status => 401
 }
-sub test-is-forbidden(|c) is hidden-from-backtrace is export {
+sub is-forbidden(|c) is hidden-from-backtrace is export {
     test |c, status => 403
 }
-sub test-is-not-found(|c) is hidden-from-backtrace is export {
+sub is-not-found(|c) is hidden-from-backtrace is export {
     test |c, status => 404
 }
-sub test-is-method-not-allowed(|c) is hidden-from-backtrace is export {
+sub is-method-not-allowed(|c) is hidden-from-backtrace is export {
     test |c, status => 405
 }
-sub test-is-conflict(|c) is hidden-from-backtrace is export {
+sub is-conflict(|c) is hidden-from-backtrace is export {
     test |c, status => 409
 }
-sub test-is-unprocessable-entity(|c) is hidden-from-backtrace is export {
+sub is-unprocessable-entity(|c) is hidden-from-backtrace is export {
     test |c, status => 422
 }
 
