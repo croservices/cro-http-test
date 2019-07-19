@@ -30,8 +30,7 @@ test-service routes(), fake-auth => MySession.new, {
         status => 200;
     test get('/secret'),
         status => 401;
-    test get('/admin'),
-        status => 401;
+    is-unauthorized get('/admin');
 
     test-given fake-auth => MySession.new(:logged-in), {
         test get('/public'),
