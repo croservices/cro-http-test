@@ -5,6 +5,7 @@ use Cro::MediaType;
 use Cro::Transform;
 use Cro::Uri;
 use Test;
+use Test::Assertion;
 
 my class X::Cro::HTTP::Test::OnlyOneBody is Exception {
     method message() {
@@ -36,7 +37,7 @@ my class TestContext {
 }
 
 multi test-service(Cro::Transform $testee, &tests, :$fake-auth, :$http,
-                   Str :$peer-host, Int :$peer-port, *%client-options --> Nil) is export {
+                   Str :$peer-host, Int :$peer-port, *%client-options --> Nil) is export is test-assertion {
     my $*CRO-HTTP-TEST-AUTH-HOLDER = Cro::HTTP::Test::FakeAuthHolder.new;
     with $fake-auth {
         $*CRO-HTTP-TEST-AUTH-HOLDER.push-auth($_);
@@ -49,7 +50,7 @@ multi test-service(Cro::Transform $testee, &tests, :$fake-auth, :$http,
     test-service-run $client, &tests;
 }
 
-multi test-service(Str $uri, &tests, :$fake-auth, *%client-options --> Nil) is export {
+multi test-service(Str $uri, &tests, :$fake-auth, *%client-options --> Nil) is export is test-assertion {
     with $fake-auth {
         die X::Cro::HTTP::Test::BadFakeAuth.new;
     }
@@ -61,7 +62,7 @@ sub test-service-run($client, &tests --> Nil) {
     tests();
 }
 
-multi test-given(Str $new-base, &tests, :$fake-auth, *%client-options --> Nil) is export {
+multi test-given(Str $new-base, &tests, :$fake-auth, *%client-options --> Nil) is export is test-assertion {
     my TestContext $orig-context = $*CRO-HTTP-TEST-CONTEXT;
     {
         my $*CRO-HTTP-TEST-CONTEXT = $orig-context.derive($new-base, %client-options);
@@ -69,7 +70,7 @@ multi test-given(Str $new-base, &tests, :$fake-auth, *%client-options --> Nil) i
     }
 }
 
-multi test-given(&tests, :$fake-auth, *%client-options --> Nil) is export {
+multi test-given(&tests, :$fake-auth, *%client-options --> Nil) is export is test-assertion {
     my TestContext $orig-context = $*CRO-HTTP-TEST-CONTEXT;
     {
         my $*CRO-HTTP-TEST-CONTEXT = $orig-context.derive(Nil, %client-options);
@@ -103,28 +104,28 @@ class TestRequest {
     }
 }
 
-multi request(Str $method, Str $path, *%client-options --> TestRequest) is export {
+multi request(Str $method, Str $path, *%client-options --> TestRequest) is export is test-assertion {
     TestRequest.new(:$method, :$path, :%client-options)
 }
-multi request(Str $method, *%client-options --> TestRequest) is export {
+multi request(Str $method, *%client-options --> TestRequest) is export is test-assertion {
     TestRequest.new(:$method, :%client-options)
 }
 
-multi get(Str $path, *%client-options --> TestRequest) is export {
+multi get(Str $path, *%client-options --> TestRequest) is export is test-assertion {
     request('GET', $path, |%client-options)
 }
-multi get(*%client-options --> TestRequest) is export {
+multi get(*%client-options --> TestRequest) is export is test-assertion {
     request('GET', |%client-options)
 }
 
-multi post(Str $path, *%client-options --> TestRequest) is export {
+multi post(Str $path, *%client-options --> TestRequest) is export is test-assertion {
     request('POST', $path, |%client-options)
 }
-multi post(*%client-options --> TestRequest) is export {
+multi post(*%client-options --> TestRequest) is export is test-assertion {
     request('POST', |%client-options)
 }
 
-proto put(|) is export { * }
+proto put(|) is export is test-assertion { * }
 multi put(Str $path, *%client-options --> TestRequest) {
     request('PUT', $path, |%client-options)
 }
@@ -132,29 +133,29 @@ multi put(*%client-options --> TestRequest) {
     request('PUT', |%client-options)
 }
 
-multi delete(Str $path, *%client-options --> TestRequest) is export {
+multi delete(Str $path, *%client-options --> TestRequest) is export is test-assertion {
     request('DELETE', $path, |%client-options)
 }
-multi delete(*%client-options --> TestRequest) is export {
+multi delete(*%client-options --> TestRequest) is export is test-assertion {
     request('DELETE', |%client-options)
 }
 
-multi patch(Str $path, *%client-options --> TestRequest) is export {
+multi patch(Str $path, *%client-options --> TestRequest) is export is test-assertion {
     request('PATCH', $path, |%client-options)
 }
-multi patch(*%client-options --> TestRequest) is export {
+multi patch(*%client-options --> TestRequest) is export is test-assertion {
     request('PATCH', |%client-options)
 }
 
-multi head(Str $path, *%client-options --> TestRequest) is export {
+multi head(Str $path, *%client-options --> TestRequest) is export is test-assertion {
     request('HEAD', $path, |%client-options)
 }
-multi head(*%client-options --> TestRequest) is export {
+multi head(*%client-options --> TestRequest) is export is test-assertion {
     request('HEAD', |%client-options)
 }
 
 sub test(TestRequest:D $request, :$status, :$content-type, :header(:$headers),
-         :$body-text, :$body-blob, :$body, :$json --> Nil) is export {
+         :$body-text, :$body-blob, :$body, :$json --> Nil) is export is test-assertion {
     with $*CRO-HTTP-TEST-CONTEXT -> $ctx {
         my $method = $request.method;
         my $path = merge-path($ctx.base-path, $request.path);
@@ -275,7 +276,7 @@ sub get-response($client, $method, $path, %options) {
     }
 }
 
-sub test-media-type(Cro::MediaType $got, Cro::MediaType $expected) {
+sub test-media-type(Cro::MediaType $got, Cro::MediaType $expected) is test-assertion {
     if $expected.parameters -> @params {
         subtest 'Content type is acceptable' => {
             is $got.type-and-subtype, $expected.type-and-subtype, 'Media type and subtype are correct';
@@ -289,31 +290,31 @@ sub test-media-type(Cro::MediaType $got, Cro::MediaType $expected) {
     }
 }
 
-sub is-ok(|c) is hidden-from-backtrace is export {
+sub is-ok(|c) is hidden-from-backtrace is export is test-assertion {
     test |c, status => 200
 }
-sub is-no-content(|c) is hidden-from-backtrace is export {
+sub is-no-content(|c) is hidden-from-backtrace is export is test-assertion {
     test |c, status => 204
 }
-sub is-bad-request(|c) is hidden-from-backtrace is export {
+sub is-bad-request(|c) is hidden-from-backtrace is export is test-assertion {
     test |c, status => 400
 }
-sub is-unauthorized(|c) is hidden-from-backtrace is export {
+sub is-unauthorized(|c) is hidden-from-backtrace is export is test-assertion {
     test |c, status => 401
 }
-sub is-forbidden(|c) is hidden-from-backtrace is export {
+sub is-forbidden(|c) is hidden-from-backtrace is export is test-assertion {
     test |c, status => 403
 }
-sub is-not-found(|c) is hidden-from-backtrace is export {
+sub is-not-found(|c) is hidden-from-backtrace is export is test-assertion {
     test |c, status => 404
 }
-sub is-method-not-allowed(|c) is hidden-from-backtrace is export {
+sub is-method-not-allowed(|c) is hidden-from-backtrace is export is test-assertion {
     test |c, status => 405
 }
-sub is-conflict(|c) is hidden-from-backtrace is export {
+sub is-conflict(|c) is hidden-from-backtrace is export is test-assertion {
     test |c, status => 409
 }
-sub is-unprocessable-entity(|c) is hidden-from-backtrace is export {
+sub is-unprocessable-entity(|c) is hidden-from-backtrace is export is test-assertion {
     test |c, status => 422
 }
 
