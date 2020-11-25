@@ -125,11 +125,11 @@ multi post(*%client-options --> TestRequest) is export is test-assertion {
     request('POST', |%client-options)
 }
 
-proto put(|) is export is test-assertion { * }
-multi put(Str $path, *%client-options --> TestRequest) {
+proto put(|) is export { * }
+multi put(Str $path, *%client-options --> TestRequest) is test-assertion {
     request('PUT', $path, |%client-options)
 }
-multi put(*%client-options --> TestRequest) {
+multi put(*%client-options --> TestRequest) is test-assertion {
     request('PUT', |%client-options)
 }
 
