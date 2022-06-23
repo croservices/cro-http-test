@@ -159,9 +159,11 @@ sub test(TestRequest:D $request, :$status, :$content-type, :header(:$headers),
     with $*CRO-HTTP-TEST-CONTEXT -> $ctx {
         my $method = $request.method;
         my $path = merge-path($ctx.base-path, $request.path);
+
+        my $resp;
         subtest "$method $path" => {
             my %options := merge-options($ctx.client-options, $request.client-options);
-            my $resp = get-response($ctx.client, $method, $path, %options);
+            $resp = get-response($ctx.client, $method, $path, %options);
             with $status {
                 when Int {
                     is $resp.status, $status, 'Status is acceptable';
@@ -233,6 +235,8 @@ sub test(TestRequest:D $request, :$status, :$content-type, :header(:$headers),
                 ok await($resp.body-blob) ~~ $body-blob, 'Body is acceptable';
             }
         };
+
+        return $resp;
     }
     else {
         die "Should use `test` within a `test-service` block";
